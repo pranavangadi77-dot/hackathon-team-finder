@@ -13,8 +13,10 @@ import {
   AlertTriangle,
   Loader2,
   RefreshCw,
-  Layers
+  Layers,
+  ArrowRight
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
 const RecommendationsPage = () => {
@@ -32,7 +34,7 @@ const RecommendationsPage = () => {
     try {
       setLoading(true);
       const [recRes, outRes] = await Promise.all([
-        api.get('/teams/recommendations'),
+        api.get('/recommendations'),
         api.get('/requests/outgoing'),
       ]);
 
@@ -59,10 +61,12 @@ const RecommendationsPage = () => {
 
   const handleRequestSent = (teamId) => {
     setPendingRequestIds((prev) => [...prev, teamId]);
+    // Refresh to remove team from eligible recommendations as per Section 5.H rule 6
+    fetchRecommendations();
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-in fade-in duration-300">
       {/* Header Banner */}
       <div className="rounded-3xl glass-panel p-6 sm:p-8 border border-violet-500/30 relative overflow-hidden shadow-2xl">
         <div className="absolute top-0 right-0 -mr-16 -mt-16 w-72 h-72 bg-violet-600/20 rounded-full blur-3xl pointer-events-none" />
@@ -71,13 +75,13 @@ const RecommendationsPage = () => {
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-violet-500/15 text-violet-300 border border-violet-500/25 mb-2">
               <Sparkles className="w-3.5 h-3.5 text-violet-400" />
-              <span>Intelligent Skill-Gap Matching Algorithm</span>
+              <span>Deterministic Weighted Matching Engine</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
               Recommended Teams For Your Skillset
             </h1>
             <p className="text-xs sm:text-sm text-slate-300 mt-1 max-w-xl leading-relaxed">
-              Calculated dynamically against active hackathon squads needing your specific engineering skills to conquer registration requirements.
+              Teams whose missing skills and open roles match your profile abilities. Calculated dynamically from real MongoDB team requirements.
             </p>
           </div>
 
@@ -91,38 +95,36 @@ const RecommendationsPage = () => {
           </button>
         </div>
 
-        {/* Algorithm Weights Legend */}
-        <div className="mt-6 pt-5 border-t border-slate-800/80 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+        {/* Algorithm Weights Formula Legend - Exactly per Section 5.H */}
+        <div className="mt-6 pt-5 border-t border-slate-800/80 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
           <div className="p-3 rounded-2xl bg-slate-900/60 border border-slate-800">
-            <span className="text-[10px] text-slate-400 block uppercase font-bold tracking-wider">
-              Weight 60%
+            <span className="text-[10px] text-violet-400 block uppercase font-bold tracking-wider">
+              Weight 70%
             </span>
-            <span className="text-violet-300 font-bold block mt-0.5">Skill-Gap Coverage</span>
-            <span className="text-[10px] text-slate-500">Unfulfilled team stack requirements</span>
+            <span className="text-white font-bold block mt-0.5">Missing Skill Coverage</span>
+            <span className="text-[11px] text-slate-400">
+              (Matched Skills / Total Missing Skills) × 100
+            </span>
           </div>
 
           <div className="p-3 rounded-2xl bg-slate-900/60 border border-slate-800">
-            <span className="text-[10px] text-slate-400 block uppercase font-bold tracking-wider">
+            <span className="text-[10px] text-cyan-400 block uppercase font-bold tracking-wider">
               Weight 20%
             </span>
-            <span className="text-cyan-300 font-bold block mt-0.5">Interest Alignment</span>
-            <span className="text-[10px] text-slate-500">Hackathon problem & track synergy</span>
+            <span className="text-white font-bold block mt-0.5">Preferred Role Alignment</span>
+            <span className="text-[11px] text-slate-400">
+              100 pts if student role matches an open role
+            </span>
           </div>
 
           <div className="p-3 rounded-2xl bg-slate-900/60 border border-slate-800">
-            <span className="text-[10px] text-slate-400 block uppercase font-bold tracking-wider">
+            <span className="text-[10px] text-emerald-400 block uppercase font-bold tracking-wider">
               Weight 10%
             </span>
-            <span className="text-emerald-300 font-bold block mt-0.5">Experience Fit</span>
-            <span className="text-[10px] text-slate-500">Preferred hacker seniority level</span>
-          </div>
-
-          <div className="p-3 rounded-2xl bg-slate-900/60 border border-slate-800">
-            <span className="text-[10px] text-slate-400 block uppercase font-bold tracking-wider">
-              Weight 10%
+            <span className="text-white font-bold block mt-0.5">Team Availability</span>
+            <span className="text-[11px] text-slate-400">
+              100 pts if team has open positions left
             </span>
-            <span className="text-amber-300 font-bold block mt-0.5">Campus Synergy</span>
-            <span className="text-[10px] text-slate-500">Same university / project affinity</span>
           </div>
         </div>
       </div>
@@ -139,8 +141,22 @@ const RecommendationsPage = () => {
           <Target className="w-10 h-10 text-slate-600 mx-auto mb-3" />
           <h3 className="text-base font-bold text-white">No Matching Teams Right Now</h3>
           <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-            We couldn't find an open team that needs your exact skill profile. Try adding more technical skills or interests to your profile!
+            We couldn't find an open team seeking your current skills. Try adding more technical skills to your profile or explore all published teams.
           </p>
+          <div className="mt-5 flex items-center justify-center gap-3">
+            <Link
+              to="/profile"
+              className="px-4 py-2 rounded-xl text-xs font-semibold bg-violet-600 hover:bg-violet-500 text-white transition"
+            >
+              Update Profile Skills
+            </Link>
+            <Link
+              to="/teams"
+              className="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition"
+            >
+              Explore All Teams
+            </Link>
+          </div>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

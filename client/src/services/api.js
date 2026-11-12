@@ -35,4 +35,46 @@ api.interceptors.response.use(
   }
 );
 
+// Modular API helper objects
+export const authApi = {
+  login: (email, password) => api.post('/auth/login', { email, password }),
+  register: (data) => api.post('/auth/register', data),
+  getMe: () => api.get('/auth/me'),
+  logout: () => api.post('/auth/logout'),
+};
+
+export const teamApi = {
+  getTeams: (params) => api.get('/teams', { params }),
+  getTeamById: (id) => api.get(`/teams/${id}`),
+  createTeam: (data) => api.post('/teams', data),
+  updateTeam: (id, data) => api.put(`/teams/${id}`, data),
+  deleteTeam: (id) => api.delete(`/teams/${id}`),
+  leaveTeam: (id) => api.post(`/teams/${id}/leave`),
+  getMyTeams: () => api.get('/teams/my-teams'),
+  getRecommendations: () => api.get('/recommendations'),
+};
+
+export const userApi = {
+  getUsers: (params) => api.get('/users', { params }),
+  getUserById: (id) => api.get(`/users/${id}`),
+  getMe: () => api.get('/users/me'),
+  updateProfile: (data) => api.put('/users/me', data),
+  searchUsers: (q) => api.get('/users/search', { params: { q } }),
+};
+
+export const requestApi = {
+  createRequest: (teamId, message) => api.post('/requests', { teamId, message }),
+  getIncoming: () => api.get('/requests/incoming'),
+  getOutgoing: () => api.get('/requests/outgoing'),
+  acceptRequest: (id) => api.patch(`/requests/${id}/accept`),
+  rejectRequest: (id) => api.patch(`/requests/${id}/reject`),
+  cancelRequest: (id) => api.patch(`/requests/${id}/cancel`),
+};
+
+export const notificationApi = {
+  getNotifications: () => api.get('/notifications'),
+  markAsRead: (id) => api.patch(`/notifications/${id}/read`),
+  markAllAsRead: () => api.patch('/notifications/read-all'),
+};
+
 export default api;

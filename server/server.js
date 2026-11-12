@@ -12,6 +12,7 @@ const userRoutes = require('./routes/userRoutes');
 const teamRoutes = require('./routes/teamRoutes');
 const requestRoutes = require('./routes/requestRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
+const recommendationRoutes = require('./routes/recommendationRoutes');
 
 const app = express();
 
@@ -28,7 +29,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'online',
-    product: 'HackMate – Hackathon Team Finder API',
+    product: 'HackathonTeam Finder API',
     version: '1.0.0',
     timestamp: new Date().toISOString(),
   });
@@ -40,6 +41,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/teams', teamRoutes);
 app.use('/api/requests', requestRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/recommendations', recommendationRoutes);
 
 // Error Handling Middlewares
 app.use(notFound);
@@ -65,7 +67,7 @@ const startServer = async () => {
   }
 
   app.listen(PORT, () => {
-    console.log(`🚀 HackMate Server running on port ${PORT}`);
+    console.log(`🚀 HackathonTeam Finder Server running on port ${PORT}`);
     console.log(`📡 API Endpoints available at http://localhost:${PORT}/api`);
   });
 };

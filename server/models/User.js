@@ -25,15 +25,23 @@ const userSchema = new mongoose.Schema(
       required: [true, 'College name is required'],
       trim: true,
     },
+    department: {
+      type: String,
+      default: '',
+      trim: true,
+    },
     branch: {
       type: String,
       default: '',
       trim: true,
     },
+    year: {
+      type: String,
+      default: '3rd Year',
+    },
     yearOfStudy: {
       type: String,
       default: '3rd Year',
-      enum: ['1st Year', '2nd Year', '3rd Year', '4th Year', 'Graduate', 'Other'],
     },
     avatar: {
       type: String,
@@ -51,17 +59,35 @@ const userSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
+    preferredRoles: {
+      type: [String],
+      default: [],
+    },
     experience: {
       type: String,
       default: 'Intermediate (1-3 hackathons)',
-      enum: [
-        'Beginner (0 hackathons)',
-        'Intermediate (1-3 hackathons)',
-        'Advanced (4+ hackathons)',
-        'Hackathon Winner / Mentor',
-      ],
+    },
+    experienceLevel: {
+      type: String,
+      default: 'Intermediate',
+    },
+    previousHackathons: {
+      type: [String],
+      default: [],
+    },
+    projects: {
+      type: [mongoose.Schema.Types.Mixed],
+      default: [],
+    },
+    github: {
+      type: String,
+      default: '',
     },
     githubUrl: {
+      type: String,
+      default: '',
+    },
+    linkedin: {
       type: String,
       default: '',
     },
@@ -69,9 +95,17 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: '',
     },
+    portfolio: {
+      type: String,
+      default: '',
+    },
     portfolioUrl: {
       type: String,
       default: '',
+    },
+    availability: {
+      type: String,
+      default: 'Available',
     },
     bio: {
       type: String,

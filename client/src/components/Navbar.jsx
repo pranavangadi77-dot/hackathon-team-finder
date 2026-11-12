@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import NotificationDropdown from './NotificationDropdown';
 import {
@@ -13,7 +13,9 @@ import {
   User as UserIcon,
   Layers,
   ChevronDown,
-  Inbox
+  Inbox,
+  Award,
+  Zap
 } from 'lucide-react';
 
 const Navbar = () => {
@@ -21,9 +23,22 @@ const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const handleNavClick = (anchorId) => {
+    setMobileMenuOpen(false);
+    if (location.pathname !== '/') {
+      navigate(`/#${anchorId}`);
+    } else {
+      const element = document.getElementById(anchorId);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+  };
 
   return (
-    <nav className="sticky top-0 z-40 w-full border-b border-slate-800/80 bg-[#07090E]/80 backdrop-blur-md">
+    <nav className="sticky top-0 z-40 w-full border-b border-slate-800/80 bg-[#07090E]/90 backdrop-blur-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         {/* Brand Logo */}
         <Link to="/" className="flex items-center gap-2.5 group">
@@ -33,8 +48,8 @@ const Navbar = () => {
             </div>
           </div>
           <div className="flex flex-col">
-            <span className="font-extrabold text-lg tracking-tight bg-gradient-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-transparent">
-              Hack<span className="text-violet-400">Mate</span>
+            <span className="font-extrabold text-base sm:text-lg tracking-tight bg-gradient-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-transparent">
+              HackathonTeam <span className="text-violet-400">Finder</span>
             </span>
           </div>
         </Link>
@@ -42,25 +57,36 @@ const Navbar = () => {
         {/* Desktop Nav Links */}
         <div className="hidden md:flex items-center gap-6">
           <Link
+            to="/"
+            className="text-sm font-medium text-slate-300 hover:text-white transition"
+          >
+            Home
+          </Link>
+          <Link
             to="/teams"
             className="text-sm font-medium text-slate-300 hover:text-white transition flex items-center gap-1.5"
           >
             <Compass className="w-4 h-4 text-slate-400" />
-            Discover Teams
+            Explore Teams
           </Link>
-          <Link
-            to="/members"
-            className="text-sm font-medium text-slate-300 hover:text-white transition flex items-center gap-1.5"
+          <button
+            onClick={() => handleNavClick('how-it-works')}
+            className="text-sm font-medium text-slate-300 hover:text-white transition"
           >
-            <Users className="w-4 h-4 text-slate-400" />
-            Find Members
-          </Link>
+            How It Works
+          </button>
+          <button
+            onClick={() => handleNavClick('features')}
+            className="text-sm font-medium text-slate-300 hover:text-white transition"
+          >
+            Features
+          </button>
           <Link
             to="/recommendations"
-            className="text-sm font-medium text-violet-300 hover:text-violet-200 transition flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-violet-500/10 border border-violet-500/20 hover:border-violet-500/40"
+            className="text-sm font-medium text-violet-300 hover:text-violet-200 transition flex items-center gap-1.5 px-3 py-1 rounded-full bg-violet-500/10 border border-violet-500/20 hover:border-violet-500/40"
           >
             <Sparkles className="w-3.5 h-3.5 text-violet-400 animate-pulse" />
-            AI Matcher
+            Smart Matcher
           </Link>
         </div>
 
@@ -68,6 +94,14 @@ const Navbar = () => {
         <div className="hidden md:flex items-center gap-3">
           {isAuthenticated ? (
             <>
+              <Link
+                to="/dashboard"
+                className="text-xs font-semibold px-3.5 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 border border-slate-800 transition flex items-center gap-1.5"
+              >
+                <Layers className="w-3.5 h-3.5 text-violet-400" />
+                Dashboard
+              </Link>
+
               <Link
                 to="/create-team"
                 className="flex items-center gap-1.5 text-xs font-semibold px-3.5 py-2 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white shadow-md shadow-violet-600/25 transition active:scale-95"
@@ -112,6 +146,14 @@ const Navbar = () => {
                     >
                       <Layers className="w-4 h-4 text-violet-400" />
                       Dashboard
+                    </Link>
+                    <Link
+                      to="/recommendations"
+                      onClick={() => setProfileDropdownOpen(false)}
+                      className="flex items-center gap-2.5 px-4 py-2 text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800/70 transition"
+                    >
+                      <Sparkles className="w-4 h-4 text-violet-400" />
+                      Recommended Teams
                     </Link>
                     <Link
                       to="/my-teams"
@@ -167,7 +209,7 @@ const Navbar = () => {
                 to="/register"
                 className="text-xs font-semibold px-4 py-2 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white shadow-md shadow-violet-600/30 transition"
               >
-                Get Started
+                Sign Up
               </Link>
             </>
           )}
@@ -189,92 +231,102 @@ const Navbar = () => {
       {mobileMenuOpen && (
         <div className="md:hidden border-b border-slate-800 bg-[#0B0F19] px-4 pt-2 pb-6 space-y-2">
           <Link
+            to="/"
+            onClick={() => setMobileMenuOpen(false)}
+            className="block px-3 py-2 rounded-lg text-sm font-medium text-slate-200 hover:bg-slate-800"
+          >
+            Home
+          </Link>
+          <Link
             to="/teams"
             onClick={() => setMobileMenuOpen(false)}
             className="block px-3 py-2 rounded-lg text-sm font-medium text-slate-200 hover:bg-slate-800"
           >
-            Discover Teams
+            Explore Teams
           </Link>
-          <Link
-            to="/members"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block px-3 py-2 rounded-lg text-sm font-medium text-slate-200 hover:bg-slate-800"
+          <button
+            onClick={() => handleNavClick('how-it-works')}
+            className="w-full text-left block px-3 py-2 rounded-lg text-sm font-medium text-slate-200 hover:bg-slate-800"
           >
-            Find Members
-          </Link>
+            How It Works
+          </button>
+          <button
+            onClick={() => handleNavClick('features')}
+            className="w-full text-left block px-3 py-2 rounded-lg text-sm font-medium text-slate-200 hover:bg-slate-800"
+          >
+            Features
+          </button>
           <Link
             to="/recommendations"
             onClick={() => setMobileMenuOpen(false)}
             className="block px-3 py-2 rounded-lg text-sm font-medium text-violet-300 hover:bg-slate-800"
           >
-            AI Matcher
+            Smart Matcher
           </Link>
 
           {isAuthenticated ? (
-            <>
-              <div className="border-t border-slate-800 pt-2 space-y-1">
-                <Link
-                  to="/dashboard"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="block px-3 py-2 rounded-lg text-sm font-medium text-slate-200 hover:bg-slate-800"
-                >
-                  Dashboard
-                </Link>
-                <Link
-                  to="/create-team"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="block px-3 py-2 rounded-lg text-sm font-medium text-violet-400 hover:bg-slate-800"
-                >
-                  Create Team
-                </Link>
-                <Link
-                  to="/my-teams"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="block px-3 py-2 rounded-lg text-sm font-medium text-slate-200 hover:bg-slate-800"
-                >
-                  My Teams
-                </Link>
-                <Link
-                  to="/requests"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="block px-3 py-2 rounded-lg text-sm font-medium text-slate-200 hover:bg-slate-800"
-                >
-                  Join Requests
-                </Link>
-                <Link
-                  to="/profile"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="block px-3 py-2 rounded-lg text-sm font-medium text-slate-200 hover:bg-slate-800"
-                >
-                  My Profile
-                </Link>
-                <button
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    logout();
-                    navigate('/');
-                  }}
-                  className="w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-rose-400 hover:bg-rose-500/10"
-                >
-                  Sign Out
-                </button>
-              </div>
-            </>
+            <div className="border-t border-slate-800/80 pt-2 space-y-1">
+              <Link
+                to="/dashboard"
+                onClick={() => setMobileMenuOpen(false)}
+                className="block px-3 py-2 rounded-lg text-sm font-medium text-slate-200 hover:bg-slate-800"
+              >
+                Dashboard
+              </Link>
+              <Link
+                to="/my-teams"
+                onClick={() => setMobileMenuOpen(false)}
+                className="block px-3 py-2 rounded-lg text-sm font-medium text-slate-200 hover:bg-slate-800"
+              >
+                My Teams
+              </Link>
+              <Link
+                to="/create-team"
+                onClick={() => setMobileMenuOpen(false)}
+                className="block px-3 py-2 rounded-lg text-sm font-medium text-violet-400 hover:bg-slate-800"
+              >
+                + Create Team
+              </Link>
+              <Link
+                to="/requests"
+                onClick={() => setMobileMenuOpen(false)}
+                className="block px-3 py-2 rounded-lg text-sm font-medium text-slate-200 hover:bg-slate-800"
+              >
+                Join Requests
+              </Link>
+              <Link
+                to="/profile"
+                onClick={() => setMobileMenuOpen(false)}
+                className="block px-3 py-2 rounded-lg text-sm font-medium text-slate-200 hover:bg-slate-800"
+              >
+                Profile
+              </Link>
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  logout();
+                  navigate('/');
+                }}
+                className="w-full text-left block px-3 py-2 rounded-lg text-sm font-medium text-rose-400 hover:bg-rose-500/10"
+              >
+                Sign Out
+              </button>
+            </div>
           ) : (
-            <div className="border-t border-slate-800 pt-3 flex flex-col gap-2">
+            <div className="border-t border-slate-800/80 pt-3 flex gap-2">
               <Link
                 to="/login"
                 onClick={() => setMobileMenuOpen(false)}
-                className="w-full py-2.5 text-center text-sm font-medium rounded-xl border border-slate-800 bg-slate-900 text-white"
+                className="flex-1 text-center py-2 rounded-xl text-sm font-semibold text-slate-300 bg-slate-900 border border-slate-800"
               >
                 Log In
               </Link>
               <Link
                 to="/register"
                 onClick={() => setMobileMenuOpen(false)}
-                className="w-full py-2.5 text-center text-sm font-semibold rounded-xl bg-violet-600 text-white"
+                className="flex-1 text-center py-2 rounded-xl text-sm font-semibold text-white bg-violet-600"
               >
-                Get Started
+                Sign Up
               </Link>
             </div>
           )}

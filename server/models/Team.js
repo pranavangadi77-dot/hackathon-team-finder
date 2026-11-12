@@ -2,6 +2,10 @@ const mongoose = require('mongoose');
 
 const teamSchema = new mongoose.Schema(
   {
+    teamName: {
+      type: String,
+      trim: true,
+    },
     name: {
       type: String,
       required: [true, 'Team name is required'],
@@ -9,7 +13,7 @@ const teamSchema = new mongoose.Schema(
     },
     projectTitle: {
       type: String,
-      required: [true, 'Project title is required'],
+      default: '',
       trim: true,
     },
     hackathonName: {
@@ -23,22 +27,16 @@ const teamSchema = new mongoose.Schema(
     },
     problemStatement: {
       type: String,
-      required: [true, 'Problem statement is required'],
+      default: '',
     },
     category: {
       type: String,
       default: 'Open Innovation',
-      enum: [
-        'AI & Machine Learning',
-        'Web3 & Blockchain',
-        'FinTech',
-        'HealthTech & MedTech',
-        'EdTech',
-        'Cybersecurity',
-        'IoT & Smart Hardware',
-        'Sustainability & CleanTech',
-        'Open Innovation',
-      ],
+    },
+    college: {
+      type: String,
+      default: '',
+      trim: true,
     },
     leader: {
       type: mongoose.Schema.Types.ObjectId,
@@ -53,43 +51,63 @@ const teamSchema = new mongoose.Schema(
     ],
     requiredSkills: {
       type: [String],
-      required: [true, 'At least one required skill is needed'],
-      validate: {
-        validator: (v) => Array.isArray(v) && v.length > 0,
-        message: 'Team must specify at least one required skill',
-      },
+      default: [],
+    },
+    missingSkills: {
+      type: [String],
+      default: [],
+    },
+    availableRoles: {
+      type: [String],
+      default: [],
+    },
+    maximumMembers: {
+      type: Number,
+      default: 4,
+      min: 2,
+      max: 10,
     },
     maxMembers: {
       type: Number,
-      required: true,
       default: 4,
       min: 2,
       max: 10,
     },
     availablePositions: {
       type: Number,
-      required: true,
       default: 3,
       min: 0,
     },
     preferredExperience: {
       type: String,
       default: 'Any',
-      enum: ['Any', 'Beginner Friendly', 'Intermediate', 'Advanced'],
+    },
+    hackathonDeadline: {
+      type: Date,
     },
     applicationDeadline: {
       type: Date,
-      required: [true, 'Application deadline is required'],
+    },
+    hackathonDate: {
+      type: Date,
+    },
+    eventDate: {
+      type: Date,
     },
     contactInfo: {
       type: String,
-      required: [true, 'Contact information is required'],
+      default: '',
       trim: true,
     },
     status: {
       type: String,
-      enum: ['Open', 'Full', 'Completed'],
+      enum: ['Open', 'Full', 'Closed', 'Archived'],
       default: 'Open',
+    },
+    visibility: {
+      type: String,
+      enum: ['Public', 'College Only', 'Private'],
+      default: 'Public',
     },
   },
   {
@@ -98,8 +116,9 @@ const teamSchema = new mongoose.Schema(
 );
 
 teamSchema.index({ hackathonName: 1 });
-teamSchema.index({ status: 1 });
+teamSchema.index({ name: 1 });
+teamSchema.index({ teamName: 1 });
 teamSchema.index({ requiredSkills: 1 });
-teamSchema.index({ leader: 1 });
+teamSchema.index({ missingSkills: 1 });
 
 module.exports = mongoose.model('Team', teamSchema);

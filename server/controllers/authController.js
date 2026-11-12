@@ -33,6 +33,18 @@ const register = async (req, res, next) => {
       ...validatedData,
       email: validatedData.email.toLowerCase(),
       password: hashedPassword,
+      department: validatedData.department || validatedData.branch || '',
+      branch: validatedData.branch || validatedData.department || '',
+      year: validatedData.year || validatedData.yearOfStudy || '3rd Year',
+      yearOfStudy: validatedData.yearOfStudy || validatedData.year || '3rd Year',
+      experience: validatedData.experience || validatedData.experienceLevel || 'Beginner (0 hackathons)',
+      experienceLevel: validatedData.experienceLevel || 'Beginner',
+      github: validatedData.github || validatedData.githubUrl || '',
+      githubUrl: validatedData.githubUrl || validatedData.github || '',
+      linkedin: validatedData.linkedin || validatedData.linkedinUrl || '',
+      linkedinUrl: validatedData.linkedinUrl || validatedData.linkedin || '',
+      portfolio: validatedData.portfolio || validatedData.portfolioUrl || '',
+      portfolioUrl: validatedData.portfolioUrl || validatedData.portfolio || '',
     };
 
     const newUser = await User.create(userData);
@@ -43,9 +55,10 @@ const register = async (req, res, next) => {
 
     res.status(201).json({
       success: true,
-      message: 'Registration successful! Welcome to HackMate.',
+      message: 'Registration successful! Welcome to HackathonTeam Finder.',
       token,
       user: userObj,
+      data: userObj,
     });
   } catch (error) {
     next(error);
@@ -59,7 +72,6 @@ const login = async (req, res, next) => {
   try {
     const { email, password } = loginSchema.parse(req.body);
 
-    // If using Mongoose, explicitly select password
     let user;
     if (User.isMongoose && User.isMongoose()) {
       const MongooseUser = require('../models/User');
@@ -85,7 +97,6 @@ const login = async (req, res, next) => {
 
     const token = generateToken(user._id);
 
-    // Clean user response
     const userDoc = user.toObject ? user.toObject() : { ...user };
     delete userDoc.password;
 
@@ -94,6 +105,7 @@ const login = async (req, res, next) => {
       message: 'Logged in successfully.',
       token,
       user: userDoc,
+      data: userDoc,
     });
   } catch (error) {
     next(error);
@@ -122,13 +134,13 @@ const getMe = async (req, res, next) => {
     if (cleanUser.name) completedFields++;
     if (cleanUser.email) completedFields++;
     if (cleanUser.college) completedFields++;
-    if (cleanUser.branch) completedFields++;
+    if (cleanUser.department || cleanUser.branch) completedFields++;
     if (cleanUser.technicalSkills && cleanUser.technicalSkills.length > 0) completedFields++;
     if (cleanUser.nonTechnicalSkills && cleanUser.nonTechnicalSkills.length > 0) completedFields++;
     if (cleanUser.interests && cleanUser.interests.length > 0) completedFields++;
-    if (cleanUser.experience) completedFields++;
+    if (cleanUser.experience || cleanUser.experienceLevel) completedFields++;
     if (cleanUser.bio) completedFields++;
-    if (cleanUser.githubUrl || cleanUser.linkedinUrl || cleanUser.portfolioUrl) completedFields++;
+    if (cleanUser.github || cleanUser.githubUrl || cleanUser.linkedin || cleanUser.linkedinUrl) completedFields++;
 
     const profileCompletion = Math.round((completedFields / totalFields) * 100);
 
@@ -142,6 +154,7 @@ const getMe = async (req, res, next) => {
       student: req.user._id,
       status: 'Pending',
     });
+    const totalTeamsCount = await Team.countDocuments({ status: 'Open' });
 
     res.json({
       success: true,
@@ -151,15 +164,28 @@ const getMe = async (req, res, next) => {
         createdTeams: myCreatedTeamsCount,
         joinedTeams: myJoinedTeamsCount,
         pendingRequests: pendingOutgoingCount,
+        totalAvailableTeams: totalTeamsCount,
       },
+      data: cleanUser,
     });
   } catch (error) {
     next(error);
   }
 };
 
+// @desc    Logout student session
+// @route   POST /api/auth/logout
+// @access  Public
+const logout = async (req, res) => {
+  res.json({
+    success: true,
+    message: 'Logged out successfully.',
+  });
+};
+
 module.exports = {
   register,
   login,
   getMe,
+  logout,
 };

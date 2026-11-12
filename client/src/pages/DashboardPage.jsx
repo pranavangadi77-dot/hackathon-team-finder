@@ -20,17 +20,25 @@ import {
   AlertCircle,
   Award,
   Zap,
-  ChevronRight
+  ChevronRight,
+  Calendar,
+  Layers,
+  UserCheck,
+  ShieldCheck,
+  Trophy,
+  ExternalLink
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const DashboardPage = () => {
   const { user, refreshUser } = useAuth();
-  const [profileCompletion, setProfileCompletion] = useState(80);
+  const [profileCompletion, setProfileCompletion] = useState(85);
   const [stats, setStats] = useState({
-    createdTeams: 0,
-    joinedTeams: 0,
+    totalAvailableTeams: 8,
     pendingRequests: 0,
+    acceptedRequests: 0,
+    joinedTeams: 0,
+    createdTeams: 0,
     incomingRequests: 0,
   });
   const [recommendations, setRecommendations] = useState([]);
@@ -43,30 +51,68 @@ const DashboardPage = () => {
   const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
 
+  const upcomingHackathons = [
+    {
+      name: 'National Innovation Challenge 2026',
+      dates: 'Dec 05 - 07, 2026',
+      mode: 'Hybrid • New Delhi & Virtual',
+      category: 'AI & Sustainable Tech',
+      prize: '₹25,00,000 Prizes',
+    },
+    {
+      name: 'Smart India Hackathon 2026',
+      dates: 'Nov 28 - 30, 2026',
+      mode: 'In-person Collegiate Finale',
+      category: 'Smart Hardware & IoT',
+      prize: 'Govt Incubation Grants',
+    },
+    {
+      name: 'Global AI & Web3 Hackathon',
+      dates: 'Jan 15 - 18, 2027',
+      mode: 'Global Online',
+      category: 'DeFi & Agentic Models',
+      prize: '$100,000 in Bounties',
+    },
+    {
+      name: 'HealthTech Breakthrough Summit',
+      dates: 'Jan 22 - 24, 2027',
+      mode: 'Virtual • Boston, MA',
+      category: 'MedTech & Diagnostics',
+      prize: '$50,000 Grant Fund',
+    },
+  ];
+
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
 
-        // Fetch auth/me data for profile completion
+        // Fetch auth/me data for profile completion & stats
         const meRes = await api.get('/auth/me');
         if (meRes.data.success) {
           setProfileCompletion(meRes.data.profileCompletion || 85);
           if (meRes.data.stats) {
-            setStats((prev) => ({ ...prev, ...meRes.data.stats }));
+            setStats((prev) => ({
+              ...prev,
+              ...meRes.data.stats,
+            }));
           }
         }
 
         // Fetch outgoing requests
         const outRes = await api.get('/requests/outgoing');
         if (outRes.data.success) {
-          const pendingIds = (outRes.data.requests || [])
+          const reqs = outRes.data.requests || [];
+          const pendingIds = reqs
             .filter((r) => r.status === 'Pending')
             .map((r) => r.team?._id || r.team);
+          const acceptedCount = reqs.filter((r) => r.status === 'Accepted').length;
+
           setOutgoingPendingIds(pendingIds);
           setStats((prev) => ({
             ...prev,
             pendingRequests: pendingIds.length,
+            acceptedRequests: acceptedCount,
           }));
         }
 
@@ -78,15 +124,20 @@ const DashboardPage = () => {
         }
 
         // Fetch AI recommendations
-        const recRes = await api.get('/teams/recommendations');
+        const recRes = await api.get('/recommendations');
         if (recRes.data.success) {
           setRecommendations(recRes.data.recommendations || []);
         }
 
-        // Fetch open teams
+        // Fetch all open teams
         const teamsRes = await api.get('/teams?openPositionsOnly=true');
         if (teamsRes.data.success) {
-          setRecentTeams((teamsRes.data.teams || []).slice(0, 4));
+          const allTeams = teamsRes.data.teams || [];
+          setRecentTeams(allTeams.slice(0, 3));
+          setStats((prev) => ({
+            ...prev,
+            totalAvailableTeams: allTeams.length,
+          }));
         }
       } catch (err) {
         console.error('Error fetching dashboard metrics', err);
@@ -105,7 +156,7 @@ const DashboardPage = () => {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
-      {/* Welcome Banner */}
+      {/* 1. Welcome Banner & 2. Profile completion percentage */}
       <div className="rounded-3xl glass-panel p-6 sm:p-8 border border-slate-800 relative overflow-hidden">
         <div className="absolute top-0 right-0 -mr-12 -mt-12 w-64 h-64 bg-violet-600/15 rounded-full blur-3xl pointer-events-none" />
 
@@ -114,21 +165,21 @@ const DashboardPage = () => {
             <div className="flex items-center gap-2 mb-2">
               <span className="px-3 py-1 rounded-full text-xs font-semibold bg-violet-500/15 text-violet-300 border border-violet-500/25 flex items-center gap-1.5">
                 <Sparkles className="w-3.5 h-3.5 text-violet-400" />
-                Hackathon Builder Workspace
+                HackathonTeam Finder Workspace
               </span>
               <span className="text-xs text-slate-400">
-                {user?.college || 'Student'}
+                {user?.college || 'Student'} • {user?.department || user?.branch || 'Engineering'}
               </span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
               Welcome back, {user?.name?.split(' ')[0]} 👋
             </h1>
             <p className="text-xs sm:text-sm text-slate-400 mt-1 max-w-xl leading-relaxed">
-              You are currently registered for hackathon teammate discovery. Check out your latest skill-gap matches below.
+              Your profile is matched dynamically against missing team requirements across active hackathons.
             </p>
           </div>
 
-          {/* Profile Completion Meter */}
+          {/* Profile Strength Meter */}
           <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 flex items-center gap-4 flex-shrink-0">
             <div className="relative w-14 h-14 flex items-center justify-center">
               <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
@@ -154,49 +205,34 @@ const DashboardPage = () => {
               </span>
             </div>
             <div>
-              <p className="text-xs font-bold text-slate-200">Profile Strength</p>
+              <p className="text-xs font-bold text-slate-200">Profile Completion</p>
               <p className="text-[11px] text-slate-400">
-                {profileCompletion === 100 ? 'All skills complete' : 'Add skills to boost match %'}
+                {profileCompletion === 100 ? 'All skills verified' : 'Add skills to boost match %'}
               </p>
               <Link
                 to="/profile"
                 className="text-[11px] text-violet-400 hover:text-violet-300 font-semibold inline-flex items-center gap-0.5 mt-0.5"
               >
-                Edit profile <ChevronRight className="w-3 h-3" />
+                Complete Profile <ChevronRight className="w-3 h-3" />
               </Link>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Quick Counters Grid */}
+      {/* Metrics Counters (3. Total Available Teams, 4. Pending Requests, 5. Accepted Requests, 6. Teams Joined) */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Link
-          to="/my-teams"
+          to="/teams"
           className="glass-card rounded-2xl p-4 border border-slate-800 hover:border-violet-500/30 transition flex items-center gap-3.5 group"
         >
           <div className="w-11 h-11 rounded-xl bg-violet-600/20 text-violet-400 border border-violet-500/30 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition">
-            <FolderGit2 className="w-5 h-5" />
+            <Compass className="w-5 h-5" />
           </div>
           <div className="min-w-0">
-            <span className="text-[11px] text-slate-400 block truncate">My Teams</span>
+            <span className="text-[11px] text-slate-400 block truncate">Total Available Teams</span>
             <span className="text-xl font-bold text-white">
-              {stats.createdTeams + stats.joinedTeams}
-            </span>
-          </div>
-        </Link>
-
-        <Link
-          to="/requests"
-          className="glass-card rounded-2xl p-4 border border-slate-800 hover:border-cyan-500/30 transition flex items-center gap-3.5 group"
-        >
-          <div className="w-11 h-11 rounded-xl bg-cyan-600/20 text-cyan-400 border border-cyan-500/30 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition">
-            <Inbox className="w-5 h-5" />
-          </div>
-          <div className="min-w-0">
-            <span className="text-[11px] text-slate-400 block truncate">Incoming Requests</span>
-            <span className="text-xl font-bold text-white">
-              {stats.incomingRequests}
+              {stats.totalAvailableTeams}
             </span>
           </div>
         </Link>
@@ -209,7 +245,7 @@ const DashboardPage = () => {
             <Clock className="w-5 h-5" />
           </div>
           <div className="min-w-0">
-            <span className="text-[11px] text-slate-400 block truncate">Pending Applications</span>
+            <span className="text-[11px] text-slate-400 block truncate">Pending Join Requests</span>
             <span className="text-xl font-bold text-white">
               {stats.pendingRequests}
             </span>
@@ -217,29 +253,91 @@ const DashboardPage = () => {
         </Link>
 
         <Link
-          to="/recommendations"
+          to="/requests"
           className="glass-card rounded-2xl p-4 border border-slate-800 hover:border-emerald-500/30 transition flex items-center gap-3.5 group"
         >
           <div className="w-11 h-11 rounded-xl bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition">
-            <Zap className="w-5 h-5" />
+            <CheckCircle2 className="w-5 h-5" />
           </div>
           <div className="min-w-0">
-            <span className="text-[11px] text-slate-400 block truncate">AI Matches Found</span>
+            <span className="text-[11px] text-slate-400 block truncate">Accepted Requests</span>
             <span className="text-xl font-bold text-white">
-              {recommendations.length}
+              {stats.acceptedRequests}
+            </span>
+          </div>
+        </Link>
+
+        <Link
+          to="/my-teams"
+          className="glass-card rounded-2xl p-4 border border-slate-800 hover:border-cyan-500/30 transition flex items-center gap-3.5 group"
+        >
+          <div className="w-11 h-11 rounded-xl bg-cyan-600/20 text-cyan-400 border border-cyan-500/30 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition">
+            <FolderGit2 className="w-5 h-5" />
+          </div>
+          <div className="min-w-0">
+            <span className="text-[11px] text-slate-400 block truncate">Teams Joined / Led</span>
+            <span className="text-xl font-bold text-white">
+              {stats.createdTeams + stats.joinedTeams}
             </span>
           </div>
         </Link>
       </div>
 
-      {/* Intelligent Recommendations Section */}
+      {/* 10. Quick Actions Row */}
+      <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800/80">
+        <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block mb-3">
+          Quick Actions
+        </span>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
+          <Link
+            to="/profile"
+            className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 text-xs font-semibold text-slate-200 border border-slate-700 transition"
+          >
+            <UserCheck className="w-3.5 h-3.5 text-violet-400" />
+            <span>Complete Profile</span>
+          </Link>
+          <Link
+            to="/teams"
+            className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 text-xs font-semibold text-slate-200 border border-slate-700 transition"
+          >
+            <Compass className="w-3.5 h-3.5 text-cyan-400" />
+            <span>Explore Teams</span>
+          </Link>
+          <Link
+            to="/create-team"
+            className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-xs font-semibold text-white shadow-md shadow-violet-600/25 transition"
+          >
+            <PlusCircle className="w-3.5 h-3.5" />
+            <span>Create Team</span>
+          </Link>
+          <Link
+            to="/recommendations"
+            className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 text-xs font-semibold text-slate-200 border border-slate-700 transition"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+            <span>View Recommendations</span>
+          </Link>
+          <Link
+            to="/requests"
+            className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 text-xs font-semibold text-slate-200 border border-slate-700 transition col-span-2 sm:col-span-1"
+          >
+            <Inbox className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Manage Requests</span>
+          </Link>
+        </div>
+      </div>
+
+      {/* 7. Recommended Teams Section */}
       <div>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-violet-400 animate-pulse" />
             <h2 className="text-lg font-bold text-white tracking-tight">
-              Top AI Skill-Gap Matches For You
+              Recommended Teams For You
             </h2>
+            <span className="text-[11px] font-semibold text-violet-400 bg-violet-500/10 px-2 py-0.5 rounded-full border border-violet-500/20">
+              Deterministic Algorithm
+            </span>
           </div>
           <Link
             to="/recommendations"
@@ -293,13 +391,13 @@ const DashboardPage = () => {
         )}
       </div>
 
-      {/* Open Hackathon Teams Section */}
+      {/* 8. Recently Created Teams Section */}
       <div>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <Compass className="w-4 h-4 text-slate-400" />
             <h2 className="text-lg font-bold text-white tracking-tight">
-              Recently Published Team Openings
+              Recently Created Teams
             </h2>
           </div>
           <Link
@@ -342,29 +440,44 @@ const DashboardPage = () => {
         )}
       </div>
 
-      {/* Quick Action Dock */}
-      <div className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div>
-          <h3 className="text-sm font-bold text-white">Have an idea for an upcoming hackathon?</h3>
-          <p className="text-xs text-slate-400 mt-0.5">
-            Publish your project problem statement and let candidates pitch their complementary skills to you.
-          </p>
+      {/* 9. Upcoming Hackathons Showcase */}
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-slate-400" />
+            <h2 className="text-lg font-bold text-white tracking-tight">
+              Upcoming Hackathon Arenas
+            </h2>
+          </div>
         </div>
-        <div className="flex items-center gap-3 w-full sm:w-auto">
-          <Link
-            to="/create-team"
-            className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-semibold bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white shadow-md shadow-violet-600/30 transition"
-          >
-            <PlusCircle className="w-4 h-4" />
-            Create Team Opening
-          </Link>
-          <Link
-            to="/members"
-            className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition"
-          >
-            <Users className="w-4 h-4" />
-            Browse Hackers
-          </Link>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {upcomingHackathons.map((h, i) => (
+            <div key={i} className="glass-card rounded-2xl p-4 border border-slate-800 flex flex-col justify-between">
+              <div>
+                <span className="text-[10px] uppercase font-bold text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">
+                  {h.category}
+                </span>
+                <h4 className="text-sm font-bold text-white mt-2 leading-snug">{h.name}</h4>
+                <p className="text-[11px] text-slate-400 mt-1 flex items-center gap-1">
+                  <Clock className="w-3 h-3 text-slate-500" />
+                  {h.dates}
+                </p>
+                <p className="text-[11px] text-amber-400 font-semibold mt-1">
+                  {h.prize}
+                </p>
+              </div>
+
+              <div className="mt-4 pt-3 border-t border-slate-800">
+                <Link
+                  to={`/teams?hackathonName=${encodeURIComponent(h.name)}`}
+                  className="w-full block text-center py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 transition"
+                >
+                  Find Teams
+                </Link>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 

@@ -23,6 +23,13 @@ const joinRequestSchema = new mongoose.Schema(
       enum: ['Pending', 'Accepted', 'Rejected', 'Cancelled'],
       default: 'Pending',
     },
+    reviewedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+    },
+    reviewedAt: {
+      type: Date,
+    },
   },
   {
     timestamps: true,

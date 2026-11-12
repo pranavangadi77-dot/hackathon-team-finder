@@ -10,11 +10,18 @@ import {
   CheckCircle,
   ExternalLink,
   Tag,
-  Briefcase
+  Briefcase,
+  Target,
+  UserCheck
 } from 'lucide-react';
 
 const TeamDetailsModal = ({ isOpen, onClose, team, onRequestToJoin, isMemberOrLeader, hasPendingRequest }) => {
   if (!isOpen || !team) return null;
+
+  const missingSkills = team.missingSkills || [];
+  const requiredSkills = team.requiredSkills || [];
+  const availableRoles = team.availableRoles || [];
+  const deadline = team.hackathonDeadline || team.applicationDeadline;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
@@ -44,35 +51,39 @@ const TeamDetailsModal = ({ isOpen, onClose, team, onRequestToJoin, isMemberOrLe
           </span>
         </div>
 
-        {/* Team & Project Title */}
-        <h2 className="text-2xl font-bold text-white tracking-tight">{team.name}</h2>
-        <h4 className="text-sm font-medium text-violet-400 mt-1">{team.projectTitle}</h4>
+        {/* Team Title */}
+        <h2 className="text-2xl font-bold text-white tracking-tight">{team.teamName || team.name}</h2>
+        {team.projectTitle && (
+          <h4 className="text-sm font-medium text-violet-400 mt-1">{team.projectTitle}</h4>
+        )}
 
         {/* Quick Meta */}
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 my-5 p-3.5 rounded-2xl bg-slate-900/70 border border-slate-800/80 text-xs text-slate-300">
           <div>
-            <span className="text-slate-500 block text-[11px]">Preferred Exp:</span>
-            <span className="font-semibold text-slate-200">{team.preferredExperience || 'Any'}</span>
+            <span className="text-slate-500 block text-[11px]">College:</span>
+            <span className="font-semibold text-slate-200 truncate block">
+              {team.college || team.leader?.college || 'University'}
+            </span>
           </div>
           <div>
             <span className="text-slate-500 block text-[11px]">Roster Size:</span>
             <span className="font-semibold text-slate-200">
-              {team.members?.length || 1} / {team.maxMembers} Members
+              {team.members?.length || 1} / {team.maximumMembers || team.maxMembers || 4} Members
             </span>
           </div>
           <div className="col-span-2 sm:col-span-1">
             <span className="text-slate-500 block text-[11px]">Deadline:</span>
             <span className="font-semibold text-slate-200">
-              {new Date(team.applicationDeadline).toLocaleDateString([], {
+              {deadline ? new Date(deadline).toLocaleDateString([], {
                 month: 'short',
                 day: 'numeric',
                 year: 'numeric',
-              })}
+              }) : 'Open'}
             </span>
           </div>
         </div>
 
-        {/* Project Description & Problem Statement */}
+        {/* Project Description */}
         <div className="space-y-4">
           <div>
             <h5 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5 flex items-center gap-1.5">
@@ -80,43 +91,75 @@ const TeamDetailsModal = ({ isOpen, onClose, team, onRequestToJoin, isMemberOrLe
               Project Overview
             </h5>
             <p className="text-xs text-slate-300 leading-relaxed bg-slate-900/40 p-3.5 rounded-xl border border-slate-800/50">
-              {team.description}
+              {team.description || team.problemStatement}
             </p>
           </div>
 
-          <div>
-            <h5 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5 flex items-center gap-1.5">
-              <Award className="w-3.5 h-3.5 text-amber-400" />
-              Problem Statement
-            </h5>
-            <p className="text-xs text-slate-300 leading-relaxed bg-slate-900/40 p-3.5 rounded-xl border border-slate-800/50">
-              {team.problemStatement}
-            </p>
-          </div>
+          {/* Missing Skills Needed */}
+          {missingSkills.length > 0 && (
+            <div>
+              <h5 className="text-xs font-bold uppercase tracking-wider text-rose-400 mb-2 flex items-center gap-1.5">
+                <Target className="w-3.5 h-3.5" />
+                Missing Skills Needed
+              </h5>
+              <div className="flex flex-wrap gap-1.5">
+                {missingSkills.map((skill, idx) => (
+                  <span
+                    key={idx}
+                    className="px-2.5 py-1 text-xs rounded-lg font-semibold bg-rose-500/15 text-rose-300 border border-rose-500/25"
+                  >
+                    {skill}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Available Roles */}
+          {availableRoles.length > 0 && (
+            <div>
+              <h5 className="text-xs font-bold uppercase tracking-wider text-cyan-400 mb-2 flex items-center gap-1.5">
+                <UserCheck className="w-3.5 h-3.5" />
+                Available Positions & Roles
+              </h5>
+              <div className="flex flex-wrap gap-1.5">
+                {availableRoles.map((role, idx) => (
+                  <span
+                    key={idx}
+                    className="px-2.5 py-1 text-xs rounded-lg font-semibold bg-cyan-500/15 text-cyan-300 border border-cyan-500/25"
+                  >
+                    {role}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Required Skills */}
-          <div>
-            <h5 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2 flex items-center gap-1.5">
-              <Tag className="w-3.5 h-3.5 text-cyan-400" />
-              Required Skills
-            </h5>
-            <div className="flex flex-wrap gap-1.5">
-              {team.requiredSkills?.map((skill, idx) => (
-                <span
-                  key={idx}
-                  className="px-2.5 py-1 text-xs rounded-lg font-medium bg-violet-950/40 text-violet-300 border border-violet-800/40"
-                >
-                  {skill}
-                </span>
-              ))}
+          {requiredSkills.length > 0 && (
+            <div>
+              <h5 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2 flex items-center gap-1.5">
+                <Tag className="w-3.5 h-3.5 text-slate-400" />
+                Full Stack Required
+              </h5>
+              <div className="flex flex-wrap gap-1.5">
+                {requiredSkills.map((skill, idx) => (
+                  <span
+                    key={idx}
+                    className="px-2.5 py-1 text-xs rounded-lg font-medium bg-slate-900 text-slate-300 border border-slate-800"
+                  >
+                    {skill}
+                  </span>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Team Roster */}
           <div>
             <h5 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2 flex items-center gap-1.5">
               <Users className="w-3.5 h-3.5 text-indigo-400" />
-              Team Members ({team.members?.length || 1})
+              Team Roster ({team.members?.length || 1})
             </h5>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               {/* Leader Card */}
@@ -165,12 +208,14 @@ const TeamDetailsModal = ({ isOpen, onClose, team, onRequestToJoin, isMemberOrLe
           </div>
 
           {/* Contact info */}
-          <div className="p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800 text-xs flex items-center justify-between">
-            <div className="flex items-center gap-2 text-slate-300">
-              <Mail className="w-4 h-4 text-violet-400" />
-              <span>Contact: <strong className="text-white">{team.contactInfo}</strong></span>
+          {team.contactInfo && (
+            <div className="p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800 text-xs flex items-center justify-between">
+              <div className="flex items-center gap-2 text-slate-300">
+                <Mail className="w-4 h-4 text-violet-400" />
+                <span>Contact: <strong className="text-white">{team.contactInfo}</strong></span>
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Footer Actions */}
@@ -196,7 +241,7 @@ const TeamDetailsModal = ({ isOpen, onClose, team, onRequestToJoin, isMemberOrLe
               }`}
             >
               <Send className="w-4 h-4" />
-              {hasPendingRequest ? 'Request Pending' : 'Request to Join Team'}
+              {hasPendingRequest ? 'Request Pending' : 'Send Join Request'}
             </button>
           )}
         </div>

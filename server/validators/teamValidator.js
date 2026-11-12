@@ -1,28 +1,34 @@
 const { z } = require('zod');
 
 const createTeamSchema = z.object({
-  name: z.string().min(2, 'Team name must be at least 2 characters').max(60),
-  projectTitle: z.string().min(3, 'Project title must be at least 3 characters').max(120),
+  teamName: z.string().optional(),
+  name: z.string().min(2, 'Team name must be at least 2 characters').max(80).optional(),
+  projectTitle: z.string().optional().default(''),
   hackathonName: z.string().min(2, 'Hackathon name is required').max(100),
-  description: z.string().min(10, 'Project description must be at least 10 characters'),
-  problemStatement: z.string().min(15, 'Problem statement must be at least 15 characters'),
+  description: z.string().min(5, 'Project description must be at least 5 characters'),
+  problemStatement: z.string().optional().default(''),
   category: z.string().optional().default('Open Innovation'),
-  requiredSkills: z
-    .array(z.string().min(1))
-    .min(1, 'Please specify at least one required skill'),
-  maxMembers: z.number().int().min(2).max(10).default(4),
+  college: z.string().optional().default(''),
+  requiredSkills: z.array(z.string().min(1)).optional().default([]),
+  missingSkills: z.array(z.string().min(1)).optional().default([]),
+  availableRoles: z.array(z.string().min(1)).optional().default([]),
+  maximumMembers: z.number().int().min(2).max(10).optional(),
+  maxMembers: z.number().int().min(2).max(10).optional().default(4),
   preferredExperience: z.string().optional().default('Any'),
-  applicationDeadline: z.string().refine((val) => !isNaN(Date.parse(val)), {
-    message: 'Invalid deadline date format',
-  }),
-  contactInfo: z.string().min(3, 'Contact information is required'),
+  hackathonDeadline: z.string().optional(),
+  applicationDeadline: z.string().optional(),
+  hackathonDate: z.string().optional(),
+  eventDate: z.string().optional(),
+  contactInfo: z.string().optional().default(''),
+  visibility: z.string().optional().default('Public'),
+  status: z.string().optional().default('Open'),
 });
 
 const updateTeamSchema = createTeamSchema.partial();
 
 const joinRequestSchema = z.object({
   teamId: z.string().min(1, 'Team ID is required'),
-  message: z.string().min(5, 'Message must be at least 5 characters').max(500),
+  message: z.string().min(3, 'Message must be at least 3 characters').max(500),
 });
 
 module.exports = {

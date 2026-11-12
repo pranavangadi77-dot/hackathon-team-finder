@@ -11,6 +11,8 @@ const JoinRequestModal = ({ isOpen, onClose, team, onRequestSent }) => {
 
   if (!isOpen || !team) return null;
 
+  const teamTitle = team.teamName || team.name;
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!message.trim() || message.length < 5) {
@@ -54,8 +56,10 @@ const JoinRequestModal = ({ isOpen, onClose, team, onRequestSent }) => {
                 {team.availablePositions} position{team.availablePositions !== 1 ? 's' : ''} left
               </span>
             </div>
-            <h3 className="text-lg font-bold text-white tracking-tight">{team.name}</h3>
-            <p className="text-xs text-slate-400 line-clamp-1">{team.projectTitle}</p>
+            <h3 className="text-lg font-bold text-white tracking-tight">{teamTitle}</h3>
+            {team.projectTitle && (
+              <p className="text-xs text-slate-400 line-clamp-1">{team.projectTitle}</p>
+            )}
           </div>
           <button
             onClick={onClose}
@@ -71,18 +75,18 @@ const JoinRequestModal = ({ isOpen, onClose, team, onRequestSent }) => {
               Personalized Pitch / Note to Team Leader
             </label>
             <p className="text-[11px] text-slate-400 mb-2">
-              Explain why you're a great fit and which required skills you bring to the table.
+              Explain why you're a great fit and which missing skills you can provide to the squad.
             </p>
             <textarea
               rows={4}
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               maxLength={500}
-              placeholder="Hi! I have experience with React and Python. I saw you need machine learning assistance..."
+              placeholder="Hi! I have extensive experience with Node.js and MongoDB. I noticed your team needs backend support..."
               className="w-full rounded-2xl bg-slate-900/90 border border-slate-700/80 px-4 py-3 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500 transition resize-none"
             />
             <div className="flex justify-between items-center mt-1 text-[11px] text-slate-500">
-              <span>Be concise and highlight specific tech skills.</span>
+              <span>Highlight your complementary tech stack.</span>
               <span>{message.length} / 500</span>
             </div>
           </div>
@@ -90,7 +94,7 @@ const JoinRequestModal = ({ isOpen, onClose, team, onRequestSent }) => {
           <div className="rounded-xl bg-slate-900/60 border border-slate-800 p-3 flex items-start gap-2.5 text-xs text-slate-400">
             <Sparkles className="w-4 h-4 text-violet-400 flex-shrink-0 mt-0.5" />
             <span>
-              The team leader (<span className="text-slate-200 font-medium">{team.leader?.name || 'Leader'}</span>) will receive an instant notification and review your student profile.
+              The team leader (<span className="text-slate-200 font-medium">{team.leader?.name || 'Leader'}</span>) will receive an in-app notification to review your student profile.
             </span>
           </div>
 
@@ -98,7 +102,6 @@ const JoinRequestModal = ({ isOpen, onClose, team, onRequestSent }) => {
             <button
               type="button"
               onClick={onClose}
-              disabled={loading}
               className="px-4 py-2.5 rounded-xl text-xs font-medium text-slate-300 hover:bg-slate-800/80 transition"
             >
               Cancel
@@ -106,17 +109,17 @@ const JoinRequestModal = ({ isOpen, onClose, team, onRequestSent }) => {
             <button
               type="submit"
               disabled={loading}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white shadow-lg shadow-violet-600/30 transition disabled:opacity-50 active:scale-95"
+              className="flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-xs text-white bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 shadow-lg shadow-violet-600/30 transition active:scale-95 disabled:opacity-50"
             >
               {loading ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  Sending...
+                  <span>Submitting...</span>
                 </>
               ) : (
                 <>
                   <Send className="w-4 h-4" />
-                  Send Request
+                  <span>Send Join Request</span>
                 </>
               )}
             </button>

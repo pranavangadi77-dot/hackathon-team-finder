@@ -30,7 +30,19 @@ const notificationSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Team',
     },
+    relatedTeam: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Team',
+    },
+    relatedRequest: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'JoinRequest',
+    },
     read: {
+      type: Boolean,
+      default: false,
+    },
+    isRead: {
       type: Boolean,
       default: false,
     },
@@ -41,5 +53,6 @@ const notificationSchema = new mongoose.Schema(
 );
 
 notificationSchema.index({ recipient: 1, read: 1 });
+notificationSchema.index({ recipient: 1, isRead: 1 });
 
 module.exports = mongoose.model('Notification', notificationSchema);

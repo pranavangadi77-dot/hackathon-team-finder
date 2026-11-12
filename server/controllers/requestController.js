@@ -17,7 +17,7 @@ const createRequest = async (req, res, next) => {
     }
 
     // Check if team is open
-    if (team.status !== 'Open' || team.availablePositions <= 0) {
+    if (team.status !== 'Open' || (team.availablePositions !== undefined && team.availablePositions <= 0)) {
       return res.status(400).json({
         success: false,
         message: 'This team has no available positions left.',
@@ -25,7 +25,8 @@ const createRequest = async (req, res, next) => {
     }
 
     // Check if deadline passed
-    if (team.applicationDeadline && new Date(team.applicationDeadline) < new Date()) {
+    const deadline = team.hackathonDeadline || team.applicationDeadline;
+    if (deadline && new Date(deadline) < new Date()) {
       return res.status(400).json({
         success: false,
         message: 'The application deadline for this team has passed.',
@@ -79,16 +80,19 @@ const createRequest = async (req, res, next) => {
     await Notification.create({
       recipient: team.leader?._id || team.leader,
       sender: req.user._id,
-      title: `New Join Request for ${team.name}`,
-      message: `${req.user.name} applied to join your team "${team.name}" for "${team.hackathonName}".`,
+      title: `New Join Request for ${team.name || team.teamName}`,
+      message: `${req.user.name} applied to join your team "${team.name || team.teamName}" for "${team.hackathonName}".`,
       type: 'request_received',
       team: team._id,
+      relatedTeam: team._id,
+      relatedRequest: newRequest._id,
     });
 
     res.status(201).json({
       success: true,
       message: 'Join request sent successfully to the team leader!',
       request: newRequest,
+      data: newRequest,
     });
   } catch (error) {
     next(error);
@@ -100,7 +104,6 @@ const createRequest = async (req, res, next) => {
 // @access  Private
 const getIncomingRequests = async (req, res, next) => {
   try {
-    // Find all teams led by current user
     const myTeams = await Team.find({ leader: req.user._id });
     const myTeamIds = myTeams.map((t) => t._id.toString());
 
@@ -109,10 +112,10 @@ const getIncomingRequests = async (req, res, next) => {
         success: true,
         count: 0,
         requests: [],
+        data: [],
       });
     }
 
-    // Find all requests for these teams
     const allRequests = await JoinRequest.find({});
     const incoming = allRequests.filter((r) => {
       const tId = r.team?._id ? r.team._id.toString() : r.team?.toString();
@@ -123,6 +126,7 @@ const getIncomingRequests = async (req, res, next) => {
       success: true,
       count: incoming.length,
       requests: incoming,
+      data: incoming,
     });
   } catch (error) {
     next(error);
@@ -130,7 +134,7 @@ const getIncomingRequests = async (req, res, next) => {
 };
 
 // @desc    Get outgoing join requests submitted by current student
-// @route   GET /api/requests/outgoing
+// @route   GET /api/requests/outgoing or /api/requests/my-requests
 // @access  Private
 const getOutgoingRequests = async (req, res, next) => {
   try {
@@ -140,6 +144,40 @@ const getOutgoingRequests = async (req, res, next) => {
       success: true,
       count: requests.length,
       requests,
+      data: requests,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Get requests for a specific team (Leader only)
+// @route   GET /api/requests/team/:teamId
+// @access  Private
+const getTeamRequests = async (req, res, next) => {
+  try {
+    const team = await Team.findById(req.params.teamId);
+    if (!team) {
+      return res.status(404).json({
+        success: false,
+        message: 'Team not found',
+      });
+    }
+
+    const leaderIdStr = team.leader?._id ? team.leader._id.toString() : team.leader.toString();
+    if (leaderIdStr !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Only the team leader can view this team’s requests.',
+      });
+    }
+
+    const requests = await JoinRequest.find({ team: req.params.teamId });
+    res.json({
+      success: true,
+      count: requests.length,
+      requests,
+      data: requests,
     });
   } catch (error) {
     next(error);
@@ -206,7 +244,13 @@ const acceptRequest = async (req, res, next) => {
     // Update request status to Accepted
     const updatedRequest = await JoinRequest.findByIdAndUpdate(
       request._id,
-      { $set: { status: 'Accepted' } },
+      {
+        $set: {
+          status: 'Accepted',
+          reviewedBy: req.user._id,
+          reviewedAt: new Date(),
+        },
+      },
       { new: true }
     );
 
@@ -215,15 +259,18 @@ const acceptRequest = async (req, res, next) => {
       recipient: studentId,
       sender: req.user._id,
       title: 'Join Request Accepted! 🎉',
-      message: `Congratulations! Your request to join "${team.name}" for "${team.hackathonName}" was accepted by ${req.user.name}.`,
+      message: `Congratulations! Your request to join "${team.name || team.teamName}" for "${team.hackathonName}" was accepted by ${req.user.name}.`,
       type: 'request_accepted',
       team: team._id,
+      relatedTeam: team._id,
+      relatedRequest: updatedRequest._id,
     });
 
     res.json({
       success: true,
       message: 'Join request accepted! Student has been added to your team roster.',
       request: updatedRequest,
+      data: updatedRequest,
     });
   } catch (error) {
     next(error);
@@ -268,7 +315,13 @@ const rejectRequest = async (req, res, next) => {
 
     const updatedRequest = await JoinRequest.findByIdAndUpdate(
       request._id,
-      { $set: { status: 'Rejected' } },
+      {
+        $set: {
+          status: 'Rejected',
+          reviewedBy: req.user._id,
+          reviewedAt: new Date(),
+        },
+      },
       { new: true }
     );
 
@@ -279,15 +332,18 @@ const rejectRequest = async (req, res, next) => {
       recipient: studentId,
       sender: req.user._id,
       title: 'Join Request Status Update',
-      message: `Your request to join "${team.name}" was declined. Don't worry, there are many other teams looking for your skills!`,
+      message: `Your request to join "${team.name || team.teamName}" was declined. Don't worry, there are many other teams looking for your skills!`,
       type: 'request_rejected',
       team: team._id,
+      relatedTeam: team._id,
+      relatedRequest: updatedRequest._id,
     });
 
     res.json({
       success: true,
       message: 'Join request has been rejected.',
       request: updatedRequest,
+      data: updatedRequest,
     });
   } catch (error) {
     next(error);
@@ -335,6 +391,7 @@ const cancelRequest = async (req, res, next) => {
       success: true,
       message: 'Join request cancelled successfully.',
       request: updatedRequest,
+      data: updatedRequest,
     });
   } catch (error) {
     next(error);
@@ -345,6 +402,7 @@ module.exports = {
   createRequest,
   getIncomingRequests,
   getOutgoingRequests,
+  getTeamRequests,
   acceptRequest,
   rejectRequest,
   cancelRequest,

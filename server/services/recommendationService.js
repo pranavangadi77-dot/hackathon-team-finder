@@ -1,197 +1,200 @@
 /**
- * HackMate Intelligent Skill-Gap Recommendation Service
- * Weighted Scoring:
- * - 60% Skill Gap & Required Skill Overlap
- * - 20% Interest Compatibility
- * - 10% Experience Level Compatibility
- * - 10% Hackathon / Project Compatibility
+ * HackathonTeam Finder - Smart Team Recommendation Service
+ * Deterministic Weighted Scoring Algorithm (Section 5.H):
+ *
+ * 1. Compare student's skills against team's missing skills (case-insensitive)
+ * 2. Skill Match Score = (Number of missing skills matched / Total missing skills) * 100
+ * 3. Preferred Role Score = 100 if student's preferred role matches an open role, else 0
+ * 4. Availability Score = 100 if team has open positions, else 0
+ *
+ * Final Score = (Skill Match * 0.70) + (Preferred Role * 0.20) + (Availability * 0.10)
+ *
+ * Exclusions:
+ * - Teams student is already a leader or member of
+ * - Teams student has already requested to join (Pending or Accepted)
+ * - Teams that are not Open, or full (availablePositions <= 0)
+ * - Teams past registration deadline
+ * - Teams with no missing skills (do not recommend based on missing skill matching)
  */
 
-// Helper: Normalize skill string for accurate matching (e.g. "React.js" -> "react", "NodeJS" -> "node")
-const normalizeStr = (str) =>
-  (str || '')
+// Helper to normalize skill strings (e.g., "Node.js" -> "nodejs", "react.js" -> "react", "c++" -> "c++")
+const normalizeSkill = (str) => {
+  if (!str) return '';
+  return str
     .toLowerCase()
     .trim()
-    .replace(/[._-\s]+/g, '');
+    .replace(/[\s_.-]+/g, '');
+};
 
-const areSkillsEqual = (s1, s2) => {
-  const n1 = normalizeStr(s1);
-  const n2 = normalizeStr(s2);
-  if (n1 === n2) return true;
-  if (n1.includes(n2) || n2.includes(n1)) return true;
+const doesSkillMatch = (skillA, skillB) => {
+  const a = normalizeSkill(skillA);
+  const b = normalizeSkill(skillB);
+  if (!a || !b) return false;
+  if (a === b) return true;
+  // Substring match for common frameworks (e.g. "react" & "reactjs", "express" & "expressjs", "mongo" & "mongodb")
+  if (a.includes(b) || b.includes(a)) return true;
   return false;
 };
 
-const calculateRecommendations = async (user, teams) => {
+const calculateRecommendations = async (user, teams, existingRequests = []) => {
   if (!user || !teams || !teams.length) return [];
 
-  const userSkills = (user.technicalSkills || []).map((s) => s.trim());
-  const userInterests = (user.interests || []).map((i) => i.trim());
-  const userExperience = user.experience || 'Beginner (0 hackathons)';
+  const userId = user._id ? user._id.toString() : '';
+  const userSkills = [
+    ...(user.technicalSkills || []),
+    ...(user.nonTechnicalSkills || []),
+  ].filter(Boolean);
 
-  const scoredTeams = [];
+  const userPreferredRoles = (user.preferredRoles || []).map((r) => r.toLowerCase().trim());
+
+  // Set of team IDs student has already requested
+  const requestedTeamIds = new Set(
+    existingRequests
+      .filter((r) => {
+        const sId = r.student?._id ? r.student._id.toString() : r.student?.toString();
+        return sId === userId && (r.status === 'Pending' || r.status === 'Accepted');
+      })
+      .map((r) => (r.team?._id ? r.team._id.toString() : r.team?.toString()))
+  );
+
+  const recommendations = [];
 
   for (const team of teams) {
-    // Exclude if team is not Open or has 0 available positions
-    if (team.status !== 'Open' || team.availablePositions <= 0) continue;
+    const teamId = team._id ? team._id.toString() : '';
 
-    // Exclude if user is already leader or member
-    const isLeader = team.leader?._id?.toString() === user._id?.toString() || team.leader?.toString() === user._id?.toString();
-    const isMember = (team.members || []).some(
-      (m) => (m._id ? m._id.toString() : m.toString()) === user._id?.toString()
-    );
-    if (isLeader || isMember) continue;
+    // 1. Exclude if already requested
+    if (requestedTeamIds.has(teamId)) continue;
 
-    // Check application deadline
-    if (team.applicationDeadline && new Date(team.applicationDeadline) < new Date()) {
+    // 2. Exclude if user is leader
+    const leaderId = team.leader?._id ? team.leader._id.toString() : team.leader?.toString();
+    if (leaderId === userId) continue;
+
+    // 3. Exclude if user is already a member
+    const isMember = (team.members || []).some((m) => {
+      const mId = m?._id ? m._id.toString() : m?.toString();
+      return mId === userId;
+    });
+    if (isMember) continue;
+
+    // 4. Exclude if status is not Open
+    if (team.status && team.status !== 'Open') continue;
+
+    // 5. Exclude if full
+    const openPositions = team.availablePositions !== undefined ? team.availablePositions : (team.maxMembers || team.maximumMembers || 4) - ((team.members || []).length || 1);
+    if (openPositions <= 0) continue;
+
+    // 6. Check deadline if provided
+    const deadline = team.hackathonDeadline || team.applicationDeadline;
+    if (deadline && new Date(deadline) < new Date()) {
       continue;
     }
 
-    const requiredSkills = team.requiredSkills || [];
-
-    // 1. Gather all existing team members' skills (leader + members)
-    const existingMembers = [];
-    if (team.leader && team.leader.technicalSkills) existingMembers.push(team.leader);
-    if (Array.isArray(team.members)) {
-      team.members.forEach((m) => {
-        if (m && m.technicalSkills) existingMembers.push(m);
-      });
+    // Determine missing skills:
+    // If team has explicitly specified missingSkills, use those.
+    // Otherwise fallback to requiredSkills.
+    let targetMissingSkills = [];
+    if (Array.isArray(team.missingSkills) && team.missingSkills.length > 0) {
+      targetMissingSkills = [...team.missingSkills];
+    } else if (Array.isArray(team.requiredSkills) && team.requiredSkills.length > 0) {
+      targetMissingSkills = [...team.requiredSkills];
     }
 
-    const teamCoveredSkills = new Set();
-    existingMembers.forEach((member) => {
-      (member.technicalSkills || []).forEach((skill) => {
-        teamCoveredSkills.add(normalizeStr(skill));
-      });
-    });
+    // If the team has no missing skills at all, do not recommend based on missing skill matching
+    if (targetMissingSkills.length === 0) continue;
 
-    // 2. Identify missing / unfulfilled skills in the team
-    const missingSkills = [];
-    const fulfilledSkills = [];
+    // Calculate matched and still required skills
+    const matchedSkills = [];
+    const unmatchedSkills = [];
 
-    requiredSkills.forEach((reqSkill) => {
-      const isCovered = Array.from(teamCoveredSkills).some((cov) =>
-        areSkillsEqual(cov, reqSkill)
-      );
-      if (isCovered) {
-        fulfilledSkills.push(reqSkill);
+    targetMissingSkills.forEach((reqSkill) => {
+      const matches = userSkills.some((uSkill) => doesSkillMatch(uSkill, reqSkill));
+      if (matches) {
+        matchedSkills.push(reqSkill);
       } else {
-        missingSkills.push(reqSkill);
+        unmatchedSkills.push(reqSkill);
       }
     });
 
-    // If no existing member skills were populated, treat all required as missing
-    const activeMissingSkills = missingSkills.length > 0 ? missingSkills : requiredSkills;
+    // A team with 0 matched skills has 0 skill match
+    const skillMatchRatio = matchedSkills.length / targetMissingSkills.length;
+    const skillMatchScore = Math.min(100, Math.round(skillMatchRatio * 100));
 
-    // 3. Evaluate candidate student's match with missing skills and required skills
-    const candidateMatchesMissing = [];
-    const candidateMatchesRequired = [];
+    // If 0 skills matched and user has skills, don't recommend or keep score 0
+    if (matchedSkills.length === 0) {
+      continue;
+    }
 
-    requiredSkills.forEach((reqSkill) => {
-      const matches = userSkills.some((uSkill) => areSkillsEqual(uSkill, reqSkill));
-      if (matches) {
-        candidateMatchesRequired.push(reqSkill);
-        if (activeMissingSkills.some((mSkill) => areSkillsEqual(mSkill, reqSkill))) {
-          candidateMatchesMissing.push(reqSkill);
+    // Role matching
+    const teamRoles = (team.availableRoles || []).map((r) => r.toLowerCase().trim());
+    let roleMatched = false;
+    let suggestedRole = team.availableRoles?.[0] || 'Team Contributor';
+
+    if (userPreferredRoles.length > 0 && teamRoles.length > 0) {
+      for (const pRole of userPreferredRoles) {
+        const found = (team.availableRoles || []).find((r) =>
+          r.toLowerCase().includes(pRole) || pRole.includes(r.toLowerCase())
+        );
+        if (found) {
+          roleMatched = true;
+          suggestedRole = found;
+          break;
         }
       }
-    });
-
-    // --- SCORE 1: SKILL GAP (Weight: 60) ---
-    let skillRatio = 0;
-    if (activeMissingSkills.length > 0) {
-      const missingCoverageRatio = candidateMatchesMissing.length / activeMissingSkills.length;
-      const overallCoverageRatio = candidateMatchesRequired.length / Math.max(1, requiredSkills.length);
-      skillRatio = missingCoverageRatio * 0.7 + overallCoverageRatio * 0.3;
-    } else {
-      skillRatio = candidateMatchesRequired.length / Math.max(1, requiredSkills.length);
-    }
-    const skillScore = Math.min(1, Math.max(0, skillRatio)) * 60;
-
-    // --- SCORE 2: INTEREST COMPATIBILITY (Weight: 20) ---
-    let interestMatches = 0;
-    const category = (team.category || '').toLowerCase();
-    const projectTitle = (team.projectTitle || '').toLowerCase();
-    const description = (team.description || '').toLowerCase();
-
-    userInterests.forEach((interest) => {
-      const normInterest = interest.toLowerCase();
-      if (
-        category.includes(normInterest) ||
-        projectTitle.includes(normInterest) ||
-        description.includes(normInterest)
-      ) {
-        interestMatches++;
+    } else if (teamRoles.length > 0) {
+      // If student has ML skills and team has "ML Engineer"
+      if (matchedSkills.some((s) => /ml|machine|ai|python/i.test(s))) {
+        suggestedRole = (team.availableRoles || []).find((r) => /ml|ai|data|python/i.test(r)) || suggestedRole;
+      } else if (matchedSkills.some((s) => /backend|node|express|database|sql|mongo/i.test(s))) {
+        suggestedRole = (team.availableRoles || []).find((r) => /backend|database|api/i.test(r)) || suggestedRole;
+      } else if (matchedSkills.some((s) => /react|frontend|ui|css|html/i.test(s))) {
+        suggestedRole = (team.availableRoles || []).find((r) => /frontend|ui/i.test(r)) || suggestedRole;
       }
-    });
-
-    const interestRatio = userInterests.length > 0 ? Math.min(1, interestMatches / Math.max(1, userInterests.length)) : 0.5;
-    const interestScore = interestRatio * 20;
-
-    // --- SCORE 3: EXPERIENCE COMPATIBILITY (Weight: 10) ---
-    let expScore = 7; // baseline
-    const preferred = team.preferredExperience || 'Any';
-    if (preferred === 'Any') {
-      expScore = 10;
-    } else if (preferred === 'Beginner Friendly') {
-      expScore = userExperience.includes('Beginner') ? 10 : 8;
-    } else if (preferred === 'Intermediate') {
-      expScore = userExperience.includes('Intermediate') ? 10 : userExperience.includes('Advanced') ? 9 : 6;
-    } else if (preferred === 'Advanced') {
-      expScore = userExperience.includes('Advanced') || userExperience.includes('Winner') ? 10 : 5;
     }
 
-    // --- SCORE 4: HACKATHON / PROJECT PREFERENCE (Weight: 10) ---
-    let preferenceScore = 7; // baseline
-    if (team.leader?.college && user.college && team.leader.college.toLowerCase() === user.college.toLowerCase()) {
-      preferenceScore += 3; // bonus college synergy
-    }
-    preferenceScore = Math.min(10, preferenceScore);
+    const preferredRoleScore = roleMatched ? 100 : (teamRoles.length === 0 ? 50 : 0);
+    const availabilityScore = openPositions > 0 ? 100 : 0;
 
-    const totalScore = Math.round(skillScore + interestScore + expScore + preferenceScore);
+    // Weighted Formula per Section 5.H:
+    // Final Score = (Skill Match * 0.70) + (Preferred Role * 0.20) + (Availability * 0.10)
+    const rawFinalScore = (skillMatchScore * 0.70) + (preferredRoleScore * 0.20) + (availabilityScore * 0.10);
+    const finalScore = Math.min(100, Math.max(1, Math.round(rawFinalScore)));
 
-    // Build transparent explanation
-    let reasons = [];
-    if (candidateMatchesMissing.length > 0) {
-      reasons.push(`Fills critical skill gaps: ${candidateMatchesMissing.slice(0, 3).join(', ')}`);
-    } else if (candidateMatchesRequired.length > 0) {
-      reasons.push(`Matches required stack: ${candidateMatchesRequired.slice(0, 3).join(', ')}`);
-    }
-
-    if (interestMatches > 0) {
-      reasons.push(`Aligned with project category (${team.category})`);
+    // Formulate clear, deterministic reason
+    let reasonText = '';
+    if (unmatchedSkills.length === 0) {
+      reasonText = `Your ${matchedSkills.join(' and ')} skills directly cover 100% of this team's missing requirements.`;
+    } else {
+      reasonText = `Your ${matchedSkills.slice(0, 3).join(', ')} skills provide ${skillMatchScore}% coverage of this team's missing skill gaps.`;
     }
 
-    if (team.leader?.college && user.college && team.leader.college.toLowerCase() === user.college.toLowerCase()) {
-      reasons.push(`Same university campus (${user.college})`);
+    if (roleMatched) {
+      reasonText += ` Your preferred role matches the open ${suggestedRole} position.`;
     }
 
-    if (reasons.length === 0) {
-      reasons.push('Complementary team composition');
-    }
-
-    scoredTeams.push({
+    recommendations.push({
       team,
-      matchPercentage: Math.min(99, Math.max(20, totalScore)),
-      matchingSkills: candidateMatchesRequired,
-      missingTeamSkills: activeMissingSkills,
-      matchingMissingSkills: candidateMatchesMissing,
-      explanation: reasons.join(' • '),
-      scoreBreakdown: {
-        skillGapScore: Math.round(skillScore),
-        interestScore: Math.round(interestScore),
-        experienceScore: Math.round(expScore),
-        preferenceScore: Math.round(preferenceScore),
-      },
+      matchPercentage: finalScore,
+      skillMatchScore,
+      preferredRoleScore,
+      availabilityScore,
+      matchedSkills,
+      unmatchedMissingSkills: unmatchedSkills,
+      missingSkillsStillNotCovered: unmatchedSkills,
+      suggestedRole,
+      availablePositions: openPositions,
+      reason: reasonText,
+      explanation: reasonText,
     });
   }
 
   // Sort descending by matchPercentage
-  scoredTeams.sort((a, b) => b.matchPercentage - a.matchPercentage);
+  recommendations.sort((a, b) => b.matchPercentage - a.matchPercentage);
 
-  return scoredTeams;
+  return recommendations;
 };
 
 module.exports = {
   calculateRecommendations,
+  normalizeSkill,
+  doesSkillMatch,
 };

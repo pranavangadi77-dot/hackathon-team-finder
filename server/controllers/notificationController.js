@@ -8,7 +8,7 @@ const getNotifications = async (req, res, next) => {
     const notifications = await Notification.find({ recipient: req.user._id });
     const unreadCount = await Notification.countDocuments({
       recipient: req.user._id,
-      read: false,
+      $or: [{ read: false }, { isRead: false }],
     });
 
     res.json({
@@ -16,6 +16,7 @@ const getNotifications = async (req, res, next) => {
       count: notifications.length,
       unreadCount,
       notifications,
+      data: notifications,
     });
   } catch (error) {
     next(error);
@@ -48,13 +49,14 @@ const markAsRead = async (req, res, next) => {
 
     const updated = await Notification.findByIdAndUpdate(
       req.params.id,
-      { $set: { read: true } },
+      { $set: { read: true, isRead: true } },
       { new: true }
     );
 
     res.json({
       success: true,
       notification: updated,
+      data: updated,
     });
   } catch (error) {
     next(error);
@@ -66,7 +68,10 @@ const markAsRead = async (req, res, next) => {
 // @access  Private
 const markAllAsRead = async (req, res, next) => {
   try {
-    await Notification.updateMany({ recipient: req.user._id, read: false }, { $set: { read: true } });
+    await Notification.updateMany(
+      { recipient: req.user._id },
+      { $set: { read: true, isRead: true } }
+    );
 
     res.json({
       success: true,

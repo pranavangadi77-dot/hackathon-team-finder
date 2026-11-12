@@ -11,7 +11,6 @@ import {
   Sparkles,
   PlusCircle,
   LogOut,
-  Settings as SettingsIcon,
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -20,11 +19,12 @@ const Sidebar = () => {
 
   const navItems = [
     { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-    { name: 'Discover Teams', path: '/teams', icon: Compass },
-    { name: 'Find Members', path: '/members', icon: Users },
+    { name: 'Explore Teams', path: '/teams', icon: Compass },
+    { name: 'Recommended Teams', path: '/recommendations', icon: Sparkles, badge: 'Smart' },
+    { name: 'Create Team', path: '/create-team', icon: PlusCircle },
     { name: 'My Teams', path: '/my-teams', icon: FolderGit2 },
     { name: 'Join Requests', path: '/requests', icon: Inbox },
-    { name: 'AI Matcher', path: '/recommendations', icon: Sparkles, badge: 'Smart' },
+    { name: 'Find Teammates', path: '/members', icon: Users },
     { name: 'My Profile', path: '/profile', icon: User },
   ];
 

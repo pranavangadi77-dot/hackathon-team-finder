@@ -26,6 +26,7 @@ const LoginPage = () => {
     setSubmitting(false);
 
     if (result.success) {
+      toast.success('Signed in successfully!');
       navigate(from, { replace: true });
     }
   };
@@ -37,6 +38,7 @@ const LoginPage = () => {
     const result = await login(demoEmail, 'password123');
     setSubmitting(false);
     if (result.success) {
+      toast.success('Signed in with demo student account!');
       navigate(from, { replace: true });
     }
   };
@@ -54,11 +56,11 @@ const LoginPage = () => {
             </div>
           </div>
           <span className="font-extrabold text-2xl tracking-tight text-white">
-            Hack<span className="text-violet-400">Mate</span>
+            HackathonTeam <span className="text-violet-400">Finder</span>
           </span>
         </Link>
         <h2 className="text-2xl font-extrabold text-white tracking-tight">
-          Welcome back to HackMate
+          Welcome back to HackathonTeam Finder
         </h2>
         <p className="mt-1 text-xs text-slate-400">
           Sign in to access your hackathon team dashboard and recommendations.
@@ -116,7 +118,7 @@ const LoginPage = () => {
               {submitting ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  Signing In...
+                  <span>Signing In...</span>
                 </>
               ) : (
                 <>
@@ -129,9 +131,12 @@ const LoginPage = () => {
 
           {/* Quick Demo Accounts */}
           <div className="mt-6 pt-5 border-t border-slate-800">
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 mb-2.5">
-              <Sparkles className="w-3.5 h-3.5 text-violet-400" />
-              <span>Instant 1-Click Demo Logins:</span>
+            <div className="flex items-center justify-between text-xs font-semibold text-slate-400 mb-2.5">
+              <span className="flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-violet-400" />
+                1-Click Demonstration Logins:
+              </span>
+              <span className="text-[10px] text-slate-500 font-normal">All pw: password123</span>
             </div>
             <div className="grid grid-cols-2 gap-2 text-[11px]">
               <button
@@ -140,14 +145,14 @@ const LoginPage = () => {
                 className="p-2 rounded-xl bg-slate-900/90 hover:bg-slate-800 border border-slate-800 hover:border-violet-500/40 text-left transition flex flex-col"
               >
                 <strong className="text-white truncate">Priya Patel</strong>
-                <span className="text-[10px] text-violet-400 truncate">MIT • Team Leader (ML)</span>
+                <span className="text-[10px] text-violet-400 truncate">MIT • Leader (HealthTech)</span>
               </button>
               <button
                 type="button"
                 onClick={() => handleQuickLogin('liam@hackmate.dev')}
                 className="p-2 rounded-xl bg-slate-900/90 hover:bg-slate-800 border border-slate-800 hover:border-violet-500/40 text-left transition flex flex-col"
               >
-                <strong className="text-white truncate">Liam O'Connor</strong>
+                <strong className="text-white truncate">Liam O’Connor</strong>
                 <span className="text-[10px] text-cyan-400 truncate">Backend Specialist</span>
               </button>
               <button
@@ -156,15 +161,15 @@ const LoginPage = () => {
                 className="p-2 rounded-xl bg-slate-900/90 hover:bg-slate-800 border border-slate-800 hover:border-violet-500/40 text-left transition flex flex-col"
               >
                 <strong className="text-white truncate">Aarav Sharma</strong>
-                <span className="text-[10px] text-indigo-400 truncate">Stanford • Fullstack</span>
+                <span className="text-[10px] text-indigo-400 truncate">Leader: AI Innovators</span>
               </button>
               <button
                 type="button"
-                onClick={() => handleQuickLogin('marcus@hackmate.dev')}
+                onClick={() => handleQuickLogin('sofia@hackmate.dev')}
                 className="p-2 rounded-xl bg-slate-900/90 hover:bg-slate-800 border border-slate-800 hover:border-violet-500/40 text-left transition flex flex-col"
               >
-                <strong className="text-white truncate">Marcus Chen</strong>
-                <span className="text-[10px] text-amber-400 truncate">UC Berkeley • Web3</span>
+                <strong className="text-white truncate">Sofia Al-Mansoor</strong>
+                <span className="text-[10px] text-amber-400 truncate">Cyber Defender Lead</span>
               </button>
             </div>
           </div>

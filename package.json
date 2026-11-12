@@ -1,22 +1,25 @@
 {
-  "name": "hackmate",
+  "name": "hackathonteamp-finder",
   "version": "1.0.0",
-  "description": "HackMate – Hackathon Team Finder",
+  "description": "HackathonTeam Finder - Intelligent Full-Stack MERN Platform",
   "scripts": {
     "server": "npm --prefix server run dev",
     "client": "npm --prefix client run dev",
-    "seed": "npm --prefix server run seed",
+    "dev": "npm --prefix server run dev",
+    "seed": "node server/seed.js",
+    "test": "node server/testApi.js",
     "build": "npm --prefix client run build"
   },
   "keywords": [
     "hackathon",
     "team-finder",
+    "mern",
     "react",
     "vite",
     "nodejs",
     "mongodb",
     "express"
   ],
-  "author": "HackMate Team",
+  "author": "HackathonTeam Finder Team",
   "license": "MIT"
 }
